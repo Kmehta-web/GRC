@@ -65,10 +65,10 @@ arJj3+aNeC2aK9GT7Hct1OJGWQGbUkNWTeUr+Ui09PjBit+AMYuHgA==
 -----END PUBLIC KEY-----`;
 
         try {
-          const isValid = KJUR.jws.JWS.verifyJWT(textValue, publicKeyPEM, { alg: ["ES256"] });
+          const isValid = KJUR.jws.JWS.verify(textValue, publicKeyPEM, ["ES256"]);
           if (isValid) {
             console.log("✅ JWT Verified!");
-            newRow.classList.add('verified');
+            newRow.classList.add('verified'); // Make row red
           } else {
             console.error("❌ Invalid JWT");
           }
