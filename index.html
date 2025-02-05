@@ -1,147 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Secure Submission with Google Login & JWT Verification</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    input[type="text"] { padding: 8px; width: 300px; margin-right: 10px; }
-    button { padding: 8px 16px; margin-right: 5px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background-color: #f4f4f4; }
-    .verified { background-color: red !important; color: white; }
-    #loginSection { margin-bottom: 20px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Submission with Google Login</title>
+<style>
+body {
+font-family: Arial, sans-serif;
+margin: 20px;
+}
+table {
+width: 100%;
+border-collapse: collapse;
+margin-top: 20px;
+}
+th, td {
+border: 1px solid #ddd;
+padding: 8px;
+text-align: left;
+}
+th {
+background-color: #f2f2f2;
+}
+.highlight {
+background-color: red;
+color: white;
+}
+</style>
 </head>
 <body>
+<h1>Text Submission</h1>
+<div id="login-section">
+<button id="google-login">Login using Google</button>
+</div>
+<div id="submission-section" style="display: none;">
+<input type="text" id="input-text" placeholder="Enter text or JWT token">
+<button id="submit-button">Submit</button>
+</div>
+<table id="submission-table">
+<thead>
+<tr>
+<th>Text</th>
+<th>Date & Time</th>
+</tr>
+</thead>
+<tbody>
+<!-- Rows will be added dynamically -->
+</tbody>
+</table>
 
-  <!-- Google Sign-In Section -->
-  <div id="loginSection">
-    <button id="loginBtn">Login with Google</button>
-    <button id="logoutBtn" style="display: none;">Logout</button>
-  </div>
+<!-- Firebase and JWT libraries -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jose@4.8.1/dist/browser/index.js"></script>
 
-  <!-- Submission Form (Hidden Until Login) -->
-  <div id="content" style="display: none;">
-    <h1>Submit Your Text</h1>
-    <input type="text" id="textInput" placeholder="Enter some text or a JWT token">
-    <button id="submitBtn">Submit</button>
+<script>
+// Firebase configuration
+const firebaseConfig = {
+apiKey: "AIzaSyDutDyTo8sbmI8ftpIp3K5DtkgmV5uJYPw",
+authDomain: "grcs-69b66.firebaseapp.com",
+projectId: "grcs-69b66",
+appId: "1:621698190294:web:a4e08432305b59ae75b277",
+};
 
-    <table id="resultTable">
-      <thead>
-        <tr>
-          <th>Text</th>
-          <th>Date & Time</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
-  <!-- Firebase & jsrsasign Libraries -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
+// Google Login
+document.getElementById("google-login").addEventListener("click", () => {
+const provider = new firebase.auth.GoogleAuthProvider();
+auth.signInWithPopup(provider).then((result) => {
+document.getElementById("login-section").style.display = "none";
+document.getElementById("submission-section").style.display = "block";
+}).catch((error) => {
+console.error("Google login failed:", error);
+});
+});
 
-  <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyDutDyTo8sbmI8ftpIp3K5DtkgmV5uJYPw",
-      authDomain: "grcs-69b66.firebaseapp.com",
-      projectId: "grcs-69b66",
-      storageBucket: "grcs-69b66.appspot.com",
-      messagingSenderId: "621698190294",
-      appId: "1:621698190294:web:a4e08432305b59ae75b277",
-      measurementId: "G-NQ91XL5NMJ"
-    };
+// Submit text
+document.getElementById("submit-button").addEventListener("click", async () => {
+const inputText = document.getElementById("input-text").value.trim();
+if (!inputText) return;
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const provider = new firebase.auth.GoogleAuthProvider();
+const dateTime = new Date().toLocaleString();
+const isJWT = await verifyJWT(inputText);
 
-    // Handle Login
-    document.getElementById('loginBtn').addEventListener('click', async () => {
-      try {
-        const result = await auth.signInWithPopup(provider);
-        console.log("✅ User signed in:", result.user);
-      } catch (error) {
-        console.error("❌ Error during sign in:", error);
-      }
-    });
+const tableBody = document.querySelector("#submission-table tbody");
+const newRow = document.createElement("tr");
+if (isJWT) newRow.classList.add("highlight");
 
-    // Handle Logout
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      try {
-        await auth.signOut();
-        console.log("✅ User signed out.");
-      } catch (error) {
-        console.error("❌ Error during sign out:", error);
-      }
-    });
+newRow.innerHTML = `
+<td>${inputText}</td>
+<td>${dateTime}</td>
+`;
+tableBody.appendChild(newRow);
 
-    // Listen for auth state changes
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        document.getElementById("content").style.display = "block";
-        document.getElementById("loginBtn").style.display = "none";
-        document.getElementById("logoutBtn").style.display = "inline-block";
-      } else {
-        document.getElementById("content").style.display = "none";
-        document.getElementById("loginBtn").style.display = "inline-block";
-        document.getElementById("logoutBtn").style.display = "none";
-      }
-    });
+document.getElementById("input-text").value = ""; // Clear input
+});
 
-    // Handle text submission & JWT verification
-    document.getElementById('submitBtn').addEventListener('click', () => {
-      const textInput = document.getElementById('textInput');
-      const textValue = textInput.value.trim();
-
-      if (!textValue) {
-        alert('Please enter some text.');
-        return;
-      }
-
-      const now = new Date().toLocaleString();
-      const tableBody = document.querySelector('#resultTable tbody');
-      const newRow = document.createElement('tr');
-
-      const textCell = document.createElement('td');
-      textCell.textContent = textValue;
-      newRow.appendChild(textCell);
-
-      const dateCell = document.createElement('td');
-      dateCell.textContent = now;
-      newRow.appendChild(dateCell);
-
-      tableBody.appendChild(newRow);
-
-      // JWT Verification using jsrsasign
-      const parts = textValue.split('.');
-      if (parts.length === 3) {
-        const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
+// Verify JWT
+async function verifyJWT(token) {
+const publicKey = `-----BEGIN PUBLIC KEY-----
 MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEMU1JFVEO9FkVr0r041GpAWzKvQi1TBYm
 arJj3+aNeC2aK9GT7Hct1OJGWQGbUkNWTeUr+Ui09PjBit+AMYuHgA==
 -----END PUBLIC KEY-----`;
 
-        try {
-          const isValid = KJUR.jws.JWS.verify(textValue, publicKeyPEM, ["ES256"]);
-          if (isValid) {
-            console.log("✅ JWT Verified!");
-            newRow.classList.add('verified'); // Make row red
-          } else {
-            console.error("❌ Invalid JWT");
-          }
-        } catch (error) {
-          console.error("❌ JWT Verification Failed:", error);
-        }
-      }
-
-      textInput.value = '';
-    });
-  </script>
+try {
+const decoded = await window.jose.JWTVerify(token, publicKey, {
+algorithms: ["ES256"],
+});
+return true; // JWT is valid
+} catch (error) {
+console.error("JWT verification failed:", error);
+return false; // JWT is invalid
+}
+}
+</script>
 </body>
 </html>
+
+ 
