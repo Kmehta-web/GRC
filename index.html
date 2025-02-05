@@ -36,6 +36,7 @@
   <div id="submission-section" style="display: none;">
     <input type="text" id="input-text" placeholder="Enter text or JWT token">
     <button id="submit-button">Submit</button>
+    <button id="logout-button">Logout</button>
   </div>
   <table id="submission-table">
     <thead>
@@ -52,7 +53,7 @@
   <!-- Firebase and JWT libraries -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
-    import { getAuth, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
     import { JWTVerify } from 'https://cdn.jsdelivr.net/npm/jose@4.8.1/dist/browser/index.js';
 
     // Firebase configuration
@@ -74,10 +75,22 @@
         .then((result) => {
           document.getElementById("login-section").style.display = "none";
           document.getElementById("submission-section").style.display = "block";
+          document.getElementById("google-login").style.display = "none"; // Hide login button after login
         })
         .catch((error) => {
           console.error("Google login failed:", error);
         });
+    });
+
+    // Logout functionality
+    document.getElementById("logout-button").addEventListener("click", () => {
+      signOut(auth).then(() => {
+        document.getElementById("login-section").style.display = "block";
+        document.getElementById("submission-section").style.display = "none";
+        document.getElementById("google-login").style.display = "block"; // Show login button again
+      }).catch((error) => {
+        console.error("Logout failed:", error);
+      });
     });
 
     // Submit text
@@ -98,7 +111,7 @@
       `;
       tableBody.appendChild(newRow);
 
-      document.getElementById("input-text").value = ""; // Clear input
+      document.getElementById("input-text").value = ""; // Clear input after submission
     });
 
     // Verify JWT
