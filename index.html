@@ -3,37 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Secure Text Submission with Firebase and JWT Verification</title>
+  <title>Secure Text Submission with JWT Verification</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    input[type="text"] {
-      padding: 8px;
-      width: 300px;
-      margin-right: 10px;
-    }
-    button {
-      padding: 8px 16px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f4f4f4;
-    }
-    .verified {
-      background-color: red !important;
-      color: white;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input[type="text"] { padding: 8px; width: 300px; margin-right: 10px; }
+    button { padding: 8px 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+    .verified { background-color: red !important; color: white; }
   </style>
 </head>
 <body>
@@ -48,16 +26,17 @@
         <th>Date & Time</th>
       </tr>
     </thead>
-    <tbody>
-    </tbody>
+    <tbody></tbody>
   </table>
 
-  <script src="https://cdn.jsdelivr.net/npm/jose@latest/dist/browser/jose.min.js"></script>
+  <!-- Include jsrsasign Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
+
   <script>
-    document.getElementById('submitBtn').addEventListener('click', async () => {
+    document.getElementById('submitBtn').addEventListener('click', () => {
       const textInput = document.getElementById('textInput');
       const textValue = textInput.value.trim();
-      
+
       if (!textValue) {
         alert('Please enter some text.');
         return;
@@ -77,7 +56,7 @@
 
       tableBody.appendChild(newRow);
 
-      // JWT Verification
+      // JWT Verification using jsrsasign
       const parts = textValue.split('.');
       if (parts.length === 3) {
         const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
@@ -86,17 +65,18 @@ arJj3+aNeC2aK9GT7Hct1OJGWQGbUkNWTeUr+Ui09PjBit+AMYuHgA==
 -----END PUBLIC KEY-----`;
 
         try {
-          const key = await jose.importSPKI(publicKeyPEM, 'ES256');
-          await jose.jwtVerify(textValue, key);
-          console.log("✅ JWT Verified!");
-
-          // Apply class-based styling
-          newRow.classList.add('verified');
+          const isValid = KJUR.jws.JWS.verifyJWT(textValue, publicKeyPEM, { alg: ["ES256"] });
+          if (isValid) {
+            console.log("✅ JWT Verified!");
+            newRow.classList.add('verified');
+          } else {
+            console.error("❌ Invalid JWT");
+          }
         } catch (error) {
           console.error("❌ JWT Verification Failed:", error);
         }
       }
-      
+
       textInput.value = '';
     });
   </script>
